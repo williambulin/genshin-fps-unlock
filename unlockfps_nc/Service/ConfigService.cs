@@ -27,9 +27,9 @@ namespace unlockfps_nc.Service
 
             try
             {
-            var json = File.ReadAllText(ConfigName);
-            Config = JsonConvert.DeserializeObject<Config>(json);
-        }
+                var json = File.ReadAllText(ConfigName);
+                Config = JsonConvert.DeserializeObject<Config>(json);
+            }
             catch (Exception)
             {
                 MessageBox.Show(

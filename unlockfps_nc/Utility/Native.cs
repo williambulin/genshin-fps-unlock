@@ -68,7 +68,7 @@ namespace unlockfps_nc.Utility
         
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool VirtualFreeEx(IntPtr hProcess, IntPtr lpAddress, uint dwSize, uint dwFreeType);
-        
+
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool VirtualProtect(IntPtr lpAddress, uint dwSize, uint flNewProtect, out uint lpflOldProtect);
 
@@ -83,7 +83,7 @@ namespace unlockfps_nc.Utility
 
         [DllImport("kernel32.dll")]
         public static extern void FreeLibrary(IntPtr handle);
-        
+
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr GetModuleHandle(string lpModuleName);
 

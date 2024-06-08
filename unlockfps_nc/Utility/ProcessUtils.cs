@@ -129,7 +129,7 @@ namespace unlockfps_nc.Utility
                     MessageBox.Show($@"EnumProcessModulesEx failed ({errorCode}){Environment.NewLine}{Marshal.GetLastPInvokeErrorMessage()}"
                         , @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return IntPtr.Zero;
-            }
+                }
             }
 
             foreach (var module in modules.Where(x => x != IntPtr.Zero))
