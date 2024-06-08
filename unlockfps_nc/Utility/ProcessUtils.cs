@@ -120,10 +120,15 @@ namespace unlockfps_nc.Utility
         {
             var modules = new IntPtr[1024];
 
-            if (!Native.EnumProcessModules(hProcess, modules, (uint)(modules.Length * IntPtr.Size), out var bytesNeeded))
+            if (!Native.EnumProcessModulesEx(hProcess, modules, (uint)(modules.Length * IntPtr.Size), out var bytesNeeded, 2))
             {
-                if (Marshal.GetLastWin32Error() != 299)
+                var errorCode = Marshal.GetLastWin32Error();
+                if (errorCode != 299)
+                {
+                    MessageBox.Show($@"EnumProcessModulesEx failed ({errorCode}){Environment.NewLine}{Marshal.GetLastPInvokeErrorMessage()}"
+                        , @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return IntPtr.Zero;
+            }
             }
 
             foreach (var module in modules.Where(x => x != IntPtr.Zero))
