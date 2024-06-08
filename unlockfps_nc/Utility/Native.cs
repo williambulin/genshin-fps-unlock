@@ -70,6 +70,9 @@ namespace unlockfps_nc.Utility
         public static extern bool VirtualFreeEx(IntPtr hProcess, IntPtr lpAddress, uint dwSize, uint dwFreeType);
         
         [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool VirtualProtect(IntPtr lpAddress, uint dwSize, uint flNewProtect, out uint lpflOldProtect);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
         public static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -81,6 +84,9 @@ namespace unlockfps_nc.Utility
         [DllImport("kernel32.dll")]
         public static extern void FreeLibrary(IntPtr handle);
         
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr GetModuleHandle(string lpModuleName);
+
         [DllImport("kernel32.dll")]
         public static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
 
@@ -98,6 +104,14 @@ namespace unlockfps_nc.Utility
 
         [DllImport("ntdll.dll")]
         public static extern uint RtlAdjustPrivilege(uint Privilege, bool bEnablePrivilege, bool IsThreadPrivilege, out bool PreviousValue);
+
+        public static bool IsWine()
+        {
+            var ntdll = GetModuleHandle("ntdll.dll");
+            var ver = GetProcAddress(ntdll, "wine_get_version");
+
+            return ver != 0;
+        }
     }
 
     internal class ModuleGuard(IntPtr module) : IDisposable

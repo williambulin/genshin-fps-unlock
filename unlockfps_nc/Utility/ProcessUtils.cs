@@ -87,6 +87,16 @@ namespace unlockfps_nc.Utility
             var s = patternBytes.Length;
             var d = patternBytes;
 
+            if (Native.IsWine())
+            {
+                /*
+                 *  Fixes a problem with LoadLibraryEx not working properly on Wine.
+                 *  When the flag 'LOAD_LIBRARY_AS_IMAGE_RESOURCE' is used, it is supposed to map the entire file as READONLY.
+                 *  But Wine maps each section with the respective protection, and if there is a section with no read permission, it will trigger Access Violation.
+                */
+                Native.VirtualProtect(module, sizeOfImage, MemoryProtection.EXECUTE_READWRITE, out _);
+            }
+
             for (var i = 0U; i < sizeOfImage - s; i++)
             {
                 var found = true;
