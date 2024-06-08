@@ -118,6 +118,7 @@ namespace unlockfps_nc.Utility
 
         public static IntPtr GetModuleBase(IntPtr hProcess, string moduleName)
         {
+            var moduleNameLower = moduleName.ToLowerInvariant();
             var modules = new IntPtr[1024];
 
             if (!Native.EnumProcessModulesEx(hProcess, modules, (uint)(modules.Length * IntPtr.Size), out var bytesNeeded, 2))
@@ -137,7 +138,7 @@ namespace unlockfps_nc.Utility
                 if (Native.GetModuleBaseName(hProcess, module, sb, (uint)sb.Capacity) == 0)
                     continue;
 
-                if (sb.ToString() != moduleName)
+                if (sb.ToString().ToLowerInvariant() != moduleNameLower)
                     continue;
 
                 if (!Native.GetModuleInformation(hProcess, module, out var moduleInfo, (uint)Marshal.SizeOf<MODULEINFO>()))
