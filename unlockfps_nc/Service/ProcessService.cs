@@ -112,7 +112,9 @@ namespace unlockfps_nc.Service
             if (_gameHandle == IntPtr.Zero)
                 return false;
 
-            Native.GetExitCodeProcess(_gameHandle, out var exitCode);
+            if (!Native.GetExitCodeProcess(_gameHandle, out var exitCode))
+                return false;
+
             return exitCode == 259;
         }
 
