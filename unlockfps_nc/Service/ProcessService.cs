@@ -58,6 +58,12 @@ namespace unlockfps_nc.Service
 
         public bool Start()
         {
+            if (!File.Exists(_config.GamePath))
+            {
+                MessageBox.Show(@"Game path is invalid.", @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
             if (IsGameRunning())
             {
                 MessageBox.Show(@"An instance of the game is already running.", @"Error", MessageBoxButtons.OK,
