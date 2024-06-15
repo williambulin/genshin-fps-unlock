@@ -98,6 +98,9 @@ namespace unlockfps_nc.Service
             Native.GetWindowThreadProcessId(hWnd, out var pid);
             _gameInForeground = pid == _gamePid;
 
+            if (_gameHandle == IntPtr.Zero)
+                return;
+
             ApplyFpsLimit();
 
             if (!_config.UsePowerSave)
@@ -141,7 +144,7 @@ namespace unlockfps_nc.Service
 
             if (_config.SuspendLoad)
                 Native.ResumeThread(pi.hThread);
-            
+
             _gamePid = pi.dwProcessId;
             _gameHandle = pi.hProcess;
 
