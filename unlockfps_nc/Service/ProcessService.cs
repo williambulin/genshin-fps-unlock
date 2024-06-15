@@ -161,7 +161,7 @@ namespace unlockfps_nc.Service
 
             if (!IsGameRunning() && _config.AutoClose)
             {
-                Task.Run(async () =>
+                _ = Task.Run(async () =>
                 {
                     await Task.Delay(2000);
                     Application.Exit();
