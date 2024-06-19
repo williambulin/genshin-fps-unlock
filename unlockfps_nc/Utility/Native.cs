@@ -102,16 +102,16 @@ namespace unlockfps_nc.Utility
 
     internal class ModuleGuard(IntPtr module) : IDisposable
     {
-        public IntPtr BaseAddress { get; private set; } = module;
+        public IntPtr BaseAddress { get => module & ~3; }
 
-        public static implicit operator ModuleGuard(IntPtr module) => new(module & ~3);
+        public static implicit operator ModuleGuard(IntPtr module) => new(module);
         public static implicit operator IntPtr(ModuleGuard guard) => guard.BaseAddress;
         public static implicit operator bool(ModuleGuard guard) => guard.BaseAddress != IntPtr.Zero;
 
         public void Dispose()
         {
             if (this)
-                Native.FreeLibrary(BaseAddress);
+                Native.FreeLibrary(module);
         }
     }
 
