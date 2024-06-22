@@ -68,7 +68,11 @@ namespace unlockfps_nc
                     {
                         windowHandle = hWnd;
                         Native.GetWindowThreadProcessId(hWnd, out var pid);
-                        processPath = ProcessUtils.GetProcessPathFromPid(pid, out processHandle);
+                        var foundPath = ProcessUtils.GetProcessPathFromPid(pid, out processHandle);
+                        if (!foundPath.Contains("YuanShen.exe") && !foundPath.Contains("GenshinImpact.exe"))
+                            return true;
+
+                        processPath = foundPath;
                         return false;
                     }
 
