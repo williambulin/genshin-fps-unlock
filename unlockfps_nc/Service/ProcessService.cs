@@ -71,6 +71,13 @@ namespace unlockfps_nc.Service
                 return false;
             }
 
+            if (_gameHandle != IntPtr.Zero)
+            {
+                Native.CloseHandle(_gameHandle);
+                _gameHandle = IntPtr.Zero;
+            }
+
+
             _cts = new();
             Process.GetProcesses()
                 .ToList()
