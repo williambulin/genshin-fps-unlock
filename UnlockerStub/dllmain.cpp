@@ -81,18 +81,12 @@ DWORD __stdcall ThreadProc(LPVOID lpParameter)
 
 	pIPCData->Status = IPCStatus::ClientReady;
 
-	ULONG64 nTicks = 0;
 	while (!bExit)
 	{
-		// this is so that we don't block bExit check when detach is requested
-		nTicks++;
-		Sleep(1);
-
-		if (nTicks % 2000 != 0)
-			continue;
-
 		const auto targetValue = Clamp(pIPCData->Value, 1, 1000);
 		*pFpsValue = targetValue;
+
+		Sleep(1);
 	}
 
 	pIPCData->Status = IPCStatus::ClientExit;
