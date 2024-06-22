@@ -24,10 +24,15 @@
 
   <ItemGroup>
     <None Remove="dm34zubt.k4i~" />
+    <None Remove="Resources\UnlockerStub.dll" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Resources\icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\UnlockerStub.dll" />
   </ItemGroup>
 
   <ItemGroup>
