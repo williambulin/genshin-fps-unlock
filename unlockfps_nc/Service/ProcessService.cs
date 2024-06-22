@@ -31,13 +31,16 @@ namespace unlockfps_nc.Service
         private IntPtr _remoteUserAssembly = IntPtr.Zero;
         private int _gamePid = 0;
         private bool _gameInForeground = true;
+        private bool _failover = false;
 
         private IntPtr _pFpsValue = IntPtr.Zero;
 
         private readonly ConfigService _configService;
         private readonly Config _config;
 
-        public ProcessService(ConfigService configService)
+        private readonly IpcService _ipcService;
+
+        public ProcessService(ConfigService configService, IpcService ipcService)
         {
             _configService = configService;
             _config = _configService.Config;
@@ -53,7 +56,7 @@ namespace unlockfps_nc.Service
                 0,
                 0 // WINEVENT_OUTOFCONTEXT
                 );
-
+            _ipcService = ipcService;
         }
 
         public bool Start()
@@ -77,6 +80,8 @@ namespace unlockfps_nc.Service
                 _gameHandle = IntPtr.Zero;
             }
 
+            _failover = false;
+            _ipcService.Stop();
 
             _cts = new();
             Process.GetProcesses()
@@ -91,6 +96,7 @@ namespace unlockfps_nc.Service
 
         public void OnFormClosing()
         {
+            _ipcService.Stop();
             _cts.Cancel();
             _pinnedCallback.Free();
             Native.UnhookWinEvent(_winEventHook);
@@ -102,13 +108,11 @@ namespace unlockfps_nc.Service
             if (eventType != 3)
                 return;
 
-            Native.GetWindowThreadProcessId(hWnd, out var pid);
-            _gameInForeground = pid == _gamePid;
-
             if (_gameHandle == IntPtr.Zero)
                 return;
 
-            ApplyFpsLimit();
+            Native.GetWindowThreadProcessId(hWnd, out var pid);
+            _gameInForeground = pid == _gamePid;
 
             if (!_config.UsePowerSave)
                 return;
@@ -169,21 +173,48 @@ namespace unlockfps_nc.Service
                 await Task.Delay(1000, _cts.Token);
             }
 
-            if (!IsGameRunning() && _config.AutoClose)
+            if (!IsGameRunning())
             {
-                _ = Task.Run(async () =>
+                _ipcService.Stop();
+                _pFpsValue = IntPtr.Zero;
+                _gameHandle = IntPtr.Zero;
+
+                if (_config.AutoClose)
                 {
-                    await Task.Delay(2000);
-                    Application.Exit();
-                });
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(2000);
+                        Application.Exit();
+                    });
+                }
+
             }
         }
 
         private void ApplyFpsLimit()
         {
+            if (_pFpsValue == IntPtr.Zero)
+                return;
+
             int fpsTarget = _gameInForeground ? _config.FPSTarget : _config.UsePowerSave ? 10 : _config.FPSTarget;
-            var toWrite = BitConverter.GetBytes(fpsTarget);
-            Native.WriteProcessMemory(_gameHandle, _pFpsValue, toWrite, 4, out _);
+
+            if (!_failover)
+            {
+                var toWrite = BitConverter.GetBytes(fpsTarget);
+                if (!Native.WriteProcessMemory(_gameHandle, _pFpsValue, toWrite, 4, out _) && IsGameRunning())
+                {
+                    // make sure we are actually failing to write (game is running and we are getting access denied)
+                    if (Marshal.GetLastWin32Error() == 5)
+                    {
+                        _ipcService.Start(_gamePid, _pFpsValue);
+                        _failover = true;
+                    }
+                }
+            }
+            else
+            {
+                _ipcService.ApplyFpsLimit(fpsTarget);
+            }
         }
 
         private string BuildCommandLine()

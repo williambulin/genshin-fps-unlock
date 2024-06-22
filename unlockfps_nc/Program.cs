@@ -32,6 +32,7 @@ namespace unlockfps_nc
             services.AddTransient<SetupForm>();
             services.AddSingleton<ConfigService>();
             services.AddSingleton<ProcessService>();
+            services.AddSingleton<IpcService>();
 
             ServiceProvider = services.BuildServiceProvider();
 

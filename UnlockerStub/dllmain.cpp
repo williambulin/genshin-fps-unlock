@@ -67,7 +67,7 @@ DWORD __stdcall ThreadProc(LPVOID lpParameter)
 		return OnWinError("MapViewOfFile", GetLastError());
 
 	pIPCData = static_cast<IPCData*>(lpView.Get());
-	
+
 	// the address shouldn't change, so we make a copy to make sure it's not changed by the host
 	const auto pFpsValue = reinterpret_cast<int*>(pIPCData->Address);
 
@@ -112,7 +112,7 @@ BOOL __stdcall DllMain(HINSTANCE hInstance, DWORD fdwReason, LPVOID lpReserved)
 	{
 		bExit = true;
 		if (hThread)
-		WaitForSingleObject(hThread, INFINITE);
+			WaitForSingleObject(hThread, INFINITE);
 	}
 
 	return TRUE;
