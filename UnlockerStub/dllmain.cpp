@@ -98,6 +98,9 @@ BOOL __stdcall DllMain(HINSTANCE hInstance, DWORD fdwReason, LPVOID lpReserved)
 	if (hInstance)
 		DisableThreadLibraryCalls(hInstance);
 
+	if (!GetModuleHandleA("mhypbase.dll"))
+		return TRUE;
+
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
 		hThread = CreateThread(nullptr, 0, ThreadProc, nullptr, 0, nullptr);
@@ -108,6 +111,7 @@ BOOL __stdcall DllMain(HINSTANCE hInstance, DWORD fdwReason, LPVOID lpReserved)
 	if (fdwReason == DLL_PROCESS_DETACH)
 	{
 		bExit = true;
+		if (hThread)
 		WaitForSingleObject(hThread, INFINITE);
 	}
 
