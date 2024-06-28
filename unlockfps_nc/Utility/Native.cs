@@ -11,7 +11,6 @@ namespace unlockfps_nc.Utility
     {
         public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
         public delegate void WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
-        public delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
@@ -32,7 +31,7 @@ namespace unlockfps_nc.Utility
         public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         [DllImport("user32.dll")]
-        public static extern IntPtr SetWindowsHookEx(int idHook, HookProc lpfn, IntPtr hMod, uint dwThreadId);
+        public static extern IntPtr SetWindowsHookEx(int idHook, IntPtr lpfn, IntPtr hMod, uint dwThreadId);
 
         [DllImport("user32.dll")]
         public static extern bool UnhookWindowsHookEx(IntPtr hhk);

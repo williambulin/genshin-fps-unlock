@@ -17,7 +17,8 @@ namespace unlockfps_nc.Service
         None = 0,
         HostAwaiting = 1,
         ClientReady = 2,
-        ClientExit = 3
+        ClientExit = 3,
+        HostExit = 4
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -60,11 +61,10 @@ namespace unlockfps_nc.Service
             }
 
             var stubWndProc = Native.GetProcAddress(_stubModule, "WndProc");
-            var wndProcDelegate = Marshal.GetDelegateForFunctionPointer<Native.HookProc>(stubWndProc);
             var targetWindow = GetWindowFromProcessId(processId);
             var threadId = Native.GetWindowThreadProcessId(targetWindow, out uint _);
 
-            _wndHook = Native.SetWindowsHookEx(3, wndProcDelegate, _stubModule, threadId);
+            _wndHook = Native.SetWindowsHookEx(3, stubWndProc, _stubModule, threadId);
             if (_wndHook == IntPtr.Zero)
             {
                 string errorMessage = $@"Failed to set window hook: {Marshal.GetLastWin32Error()}{Environment.NewLine}{Marshal.GetLastPInvokeErrorMessage()}";
@@ -109,15 +109,15 @@ namespace unlockfps_nc.Service
             WriteToSharedMemory(_pFpsValue, fps, IpcStatus.None);
         }
 
-        public bool Stop()
+        public void Stop()
         {
             _started = false;
             _pFpsValue = IntPtr.Zero;
 
+            WriteToSharedMemory(IntPtr.Zero, 0, IpcStatus.HostExit);
+            Task.Delay(200).Wait();
             Native.UnhookWindowsHookEx(_wndHook);
             Native.FreeLibrary(_stubModule);
-
-            return true;
         }
 
         private void WriteToSharedMemory(IntPtr address, int fps, IpcStatus status)
