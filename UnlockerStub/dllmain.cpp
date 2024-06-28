@@ -1,6 +1,8 @@
 #include <Windows.h>
 
-HANDLE hThread = nullptr;
+#pragma comment(lib, "ntdll.lib")
+EXTERN_C NTSTATUS __stdcall LdrAddRefDll(ULONG Flags, PVOID BaseAddress);
+
 bool bExit = false;
 struct IPCData* pIPCData = nullptr;
 
@@ -10,7 +12,8 @@ enum class IPCStatus : int
 	None = 0,
 	HostAwaiting = 1,
 	ClientReady = 2,
-	ClientExit = 3
+	ClientExit = 3,
+	HostExit = 4
 };
 
 struct __declspec(align(8)) IPCData
@@ -56,6 +59,9 @@ BOOL OnWinError(const char* szFunction, DWORD dwError)
 
 DWORD __stdcall ThreadProc(LPVOID lpParameter)
 {
+	const auto hModule = static_cast<HMODULE>(lpParameter);
+	LdrAddRefDll(1, hModule);
+
 	constexpr auto szGuid = "2DE95FDC-6AB7-4593-BFE6-760DD4AB422B";
 
 	const auto hMapFile = HandleGuard(OpenFileMappingA(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, szGuid), CloseHandle);
@@ -81,12 +87,12 @@ DWORD __stdcall ThreadProc(LPVOID lpParameter)
 
 	pIPCData->Status = IPCStatus::ClientReady;
 
-	while (!bExit)
+	while (pIPCData->Status != IPCStatus::HostExit)
 	{
 		const auto targetValue = Clamp(pIPCData->Value, 1, 1000);
 		*pFpsValue = targetValue;
 
-		Sleep(1);
+		Sleep(62);
 	}
 
 	pIPCData->Status = IPCStatus::ClientExit;
@@ -103,16 +109,11 @@ BOOL __stdcall DllMain(HINSTANCE hInstance, DWORD fdwReason, LPVOID lpReserved)
 
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		hThread = CreateThread(nullptr, 0, ThreadProc, nullptr, 0, nullptr);
+		const auto hThread = CreateThread(nullptr, 0, ThreadProc, hInstance, 0, nullptr);
 		if (!hThread)
 			return OnWinError("CreateThread", GetLastError());
-	}
 
-	if (fdwReason == DLL_PROCESS_DETACH)
-	{
-		bExit = true;
-		if (hThread)
-			WaitForSingleObject(hThread, INFINITE);
+		CloseHandle(hThread);
 	}
 
 	return TRUE;
