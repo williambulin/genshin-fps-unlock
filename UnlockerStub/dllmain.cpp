@@ -45,7 +45,7 @@ T Clamp(T val, T min, T max)
 	return val < min ? min : val > max ? max : val;
 }
 
-BOOL OnWinError(const char* szFunction, DWORD dwError)
+BOOL __declspec(noinline) OnWinError(const char* szFunction, DWORD dwError)
 {
 	char szMessage[256];
 	wsprintfA(szMessage, "%s failed with error %d", szFunction, dwError);
@@ -119,7 +119,7 @@ BOOL __stdcall DllMain(HINSTANCE hInstance, DWORD fdwReason, LPVOID lpReserved)
 	return TRUE;
 }
 
-extern "C" __declspec(dllexport) LRESULT __stdcall WndProc(int code, WPARAM wParam, LPARAM lParam)
+EXTERN_C __declspec(dllexport) LRESULT __stdcall WndProc(int code, WPARAM wParam, LPARAM lParam)
 {
 	return CallNextHookEx(nullptr, code, wParam, lParam);
 }
