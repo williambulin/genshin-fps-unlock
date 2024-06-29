@@ -25,6 +25,10 @@ namespace unlockfps_nc
             _config = _configService.Config;
 
             SetupBindings();
+
+#if RELEASEMIN
+            TabCtrlSettings.Controls.Remove(TabDlls);
+#endif
         }
 
         private void SetupBindings()
@@ -45,9 +49,11 @@ namespace unlockfps_nc
             ComboFullscreenMode.DataBindings.Add("SelectedIndex", _config, "IsExclusiveFullscreen", true, DataSourceUpdateMode.OnPropertyChanged);
             InputMonitorNum.DataBindings.Add("Value", _config, "MonitorNum", true, DataSourceUpdateMode.OnPropertyChanged);
 
+#if !RELEASEMIN
             // DLLs            
             RefreshDllList();
             CBSuspendLoad.DataBindings.Add("Checked", _config, "SuspendLoad", true, DataSourceUpdateMode.OnPropertyChanged);
+#endif
         }
 
         private void RefreshDllList()

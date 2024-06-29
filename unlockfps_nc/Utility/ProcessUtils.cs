@@ -32,6 +32,7 @@ namespace unlockfps_nc.Utility
 
         public static bool InjectDlls(IntPtr processHandle, List<string> dllPaths)
         {
+#if !RELEASEMIN
             if (dllPaths.Count == 0)
                 return true;
 
@@ -64,7 +65,7 @@ namespace unlockfps_nc.Utility
             }
 
             Native.VirtualFreeEx(processHandle, remoteVa, 0, FreeType.RELEASE);
-
+#endif
             return true;
         }
 
