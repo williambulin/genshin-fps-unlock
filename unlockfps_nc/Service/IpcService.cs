@@ -137,8 +137,7 @@ namespace unlockfps_nc.Service
             var assembly = Assembly.GetExecutingAssembly();
             using var stream = assembly.GetManifestResourceStream("unlockfps_nc.Resources.UnlockerStub.dll");
 
-            var processPath = Path.GetDirectoryName(assembly.Location) ?? "";
-            var filePath = Path.Combine(processPath, "UnlockerStub.dll");
+            var filePath = Path.Combine(AppContext.BaseDirectory, "UnlockerStub.dll");
             using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
             stream.CopyTo(fileStream);
 
