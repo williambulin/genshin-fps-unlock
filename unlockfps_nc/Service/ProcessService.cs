@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -161,8 +162,7 @@ namespace unlockfps_nc.Service
 
             Native.CloseHandle(pi.hThread);
 
-            if (!await UpdateRemoteModules())
-                return;
+            SpinWait.SpinUntil(() => ProcessUtils.GetWindowFromProcessId(_gamePid) != IntPtr.Zero);
 
             if (!SetupData())
                 return;
@@ -251,11 +251,21 @@ namespace unlockfps_nc.Service
 
             if (!pUnityPlayer || !pUserAssembly)
             {
+                if (!File.Exists(unityPlayerPath) && !File.Exists(userAssemblyPath))
+                {
+                    if (SetupDataEx())
+                        return true;
+                    goto BAD_PATTERN;
+                }
+
                 MessageBox.Show(
                     @"Failed to load UnityPlayer.dll or UserAssembly.dll",
                     @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
+
+            if (!UpdateRemoteModules())
+                return false;
 
             var dosHeader = Marshal.PtrToStructure<IMAGE_DOS_HEADER>(pUnityPlayer);
             var ntHeader = Marshal.PtrToStructure<IMAGE_NT_HEADERS>((IntPtr)(pUnityPlayer.BaseAddress.ToInt64() + dosHeader.e_lfanew));
@@ -326,7 +336,40 @@ namespace unlockfps_nc.Service
             return false;
         }
 
-        private async Task<bool> UpdateRemoteModules()
+        private unsafe bool SetupDataEx()
+        {
+            var gameName = Path.GetFileNameWithoutExtension(_config.GamePath);
+            var remoteExe = ProcessUtils.GetModuleBase(_gameHandle, $"{gameName}.exe");
+            if (remoteExe == IntPtr.Zero)
+                return false;
+
+            using ModuleGuard pGenshinImpact = Native.LoadLibraryEx(_config.GamePath, IntPtr.Zero, 32);
+            if (!pGenshinImpact)
+                return false;
+
+            var vaResults = ProcessUtils.PatternScanAllOccurrences(pGenshinImpact, "B9 3C 00 00 00 E8");
+            if (vaResults.Count == 0)
+                return false;
+
+            var localVa = (byte*)vaResults
+                .Select(x => x + 5)
+                .Select(x => x + *(int*)(x + 1) + 5)
+                .FirstOrDefault(x => *(byte*)x == 0xE9);
+
+            if (localVa == null)
+                return false;
+
+            while (localVa[0] == 0xE8 || localVa[0] == 0xE9)
+                localVa += *(int*)(localVa + 1) + 5;
+
+            localVa += *(int*)(localVa + 2) + 6;
+            var rva = localVa - pGenshinImpact.BaseAddress.ToInt64();
+            _pFpsValue = (IntPtr)(remoteExe + rva);
+
+            return true;
+        }
+
+        private bool UpdateRemoteModules()
         {
             int retries = 0;
 
@@ -341,7 +384,7 @@ namespace unlockfps_nc.Service
                 if (retries > 10)
                     break;
 
-                await Task.Delay(2000, _cts.Token);
+                Task.Delay(2000, _cts.Token).Wait();
                 retries++;
             }
 

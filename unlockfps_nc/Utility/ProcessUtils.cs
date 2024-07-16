@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
@@ -28,6 +29,25 @@ namespace unlockfps_nc.Utility
                 return string.Empty;
 
             return sb.ToString();
+        }
+
+        public static IntPtr GetWindowFromProcessId(int processId)
+        {
+            IntPtr windowHandle = IntPtr.Zero;
+
+            Native.EnumWindows((hWnd, lParam) =>
+            {
+                Native.GetWindowThreadProcessId(hWnd, out uint pid);
+                if (pid == processId)
+                {
+                    windowHandle = hWnd;
+                    return false;
+                }
+
+                return true;
+            }, IntPtr.Zero);
+
+            return windowHandle;
         }
 
         public static bool InjectDlls(IntPtr processHandle, List<string> dllPaths)
@@ -71,22 +91,10 @@ namespace unlockfps_nc.Utility
 
         public static unsafe IntPtr PatternScan(IntPtr module, string signature)
         {
-            var tokens = signature.Split(' ');
-            var patternBytes = tokens
-                .Select(x => x == "?" ? (byte)0xFF : Convert.ToByte(x, 16))
-                .ToArray();
-            var maskBytes = tokens
-                .Select(x => x == "?")
-                .ToArray();
+            var (patternBytes, maskBytes) = ParseSignature(signature);
 
-            var dosHeader = Marshal.PtrToStructure<IMAGE_DOS_HEADER>(module);
-            var ntHeader = Marshal.PtrToStructure<IMAGE_NT_HEADERS>((IntPtr)(module.ToInt64() + dosHeader.e_lfanew));
-
-            var sizeOfImage = ntHeader.OptionalHeader.SizeOfImage;
+            var sizeOfImage = Native.GetModuleImageSize(module);
             var scanBytes = (byte*)module;
-
-            var s = patternBytes.Length;
-            var d = patternBytes;
 
             if (Native.IsWine())
             {
@@ -98,12 +106,58 @@ namespace unlockfps_nc.Utility
                 Native.VirtualProtect(module, sizeOfImage, MemoryProtection.EXECUTE_READWRITE, out _);
             }
 
-            for (var i = 0U; i < sizeOfImage - s; i++)
+            var span = new ReadOnlySpan<byte>(scanBytes, (int)sizeOfImage);
+            var offset = PatternScan(span, patternBytes, maskBytes);
+
+            if (offset != -1)
+                return (IntPtr)(module.ToInt64() + offset);
+
+
+            return IntPtr.Zero;
+        }
+
+        public static unsafe List<IntPtr> PatternScanAllOccurrences(IntPtr module, string signature)
+        {
+            var (patternBytes, maskBytes) = ParseSignature(signature);
+
+            var sizeOfImage = Native.GetModuleImageSize(module);
+            var scanBytes = (byte*)module;
+
+            if (Native.IsWine())
+                Native.VirtualProtect(module, sizeOfImage, MemoryProtection.EXECUTE_READWRITE, out _);
+            
+            var span = new ReadOnlySpan<byte>(scanBytes, (int)sizeOfImage);
+            var offsets = new List<IntPtr>();
+
+            var totalProcessed = 0L;
+            while (true)
+            {
+                var offset = PatternScan(span, patternBytes, maskBytes);
+                if (offset == -1)
+                    break;
+
+                offsets.Add((IntPtr)(module.ToInt64() + offset + totalProcessed));
+
+                var processedOffset = offset + patternBytes.Length;
+                totalProcessed += processedOffset;
+
+                span = span.Slice((int)processedOffset);
+            }
+
+            return offsets;
+        }
+
+        public static long PatternScan(ReadOnlySpan<byte> data, byte[] patternBytes, bool[] maskBytes)
+        {
+            var s = patternBytes.Length;
+            var d = patternBytes;
+
+            for (var i = 0; i < data.Length - s; i++)
             {
                 var found = true;
                 for (var j = 0; j < s; j++)
                 {
-                    if (d[j] != scanBytes[i + j] && !maskBytes[j])
+                    if (d[j] != data[i + j] && !maskBytes[j])
                     {
                         found = false;
                         break;
@@ -111,10 +165,23 @@ namespace unlockfps_nc.Utility
                 }
 
                 if (found)
-                    return (IntPtr)(module.ToInt64() + i);
+                    return i;
             }
 
-            return IntPtr.Zero;
+            return -1;
+        }
+
+        private static (byte[], bool[]) ParseSignature(string signature)
+        {
+            var tokens = signature.Split(' ');
+            var patternBytes = tokens
+                .Select(x => x == "?" ? (byte)0xFF : Convert.ToByte(x, 16))
+                .ToArray();
+            var maskBytes = tokens
+                .Select(x => x == "?")
+                .ToArray();
+
+            return (patternBytes, maskBytes);
         }
 
         public static IntPtr GetModuleBase(IntPtr hProcess, string moduleName)
