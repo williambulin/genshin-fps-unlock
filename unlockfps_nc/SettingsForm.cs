@@ -38,7 +38,9 @@ namespace unlockfps_nc
             CBAutoClose.DataBindings.Add("Checked", _config, "AutoClose", true, DataSourceUpdateMode.OnPropertyChanged);
             CBPowerSave.DataBindings.Add("Checked", _config, "UsePowerSave", true, DataSourceUpdateMode.OnPropertyChanged);
             ComboPriority.DataBindings.Add("SelectedIndex", _config, "Priority", true, DataSourceUpdateMode.OnPropertyChanged);
-            
+            CBUseHDR.DataBindings.Add("Checked", _config, "UseHDR", true, DataSourceUpdateMode.OnPropertyChanged);
+            InputAffinityNum.DataBindings.Add("Value", _config, "Affinity", true, DataSourceUpdateMode.OnPropertyChanged);
+
             // Launch Options
             CBPopup.DataBindings.Add("Checked", _config, "PopupWindow", true, DataSourceUpdateMode.OnPropertyChanged);
             CBFullscreen.DataBindings.Add("Checked", _config, "Fullscreen", true, DataSourceUpdateMode.OnPropertyChanged);
@@ -50,7 +52,7 @@ namespace unlockfps_nc
             InputMonitorNum.DataBindings.Add("Value", _config, "MonitorNum", true, DataSourceUpdateMode.OnPropertyChanged);
 
 #if !RELEASEMIN
-            // DLLs            
+            // DLLs
             RefreshDllList();
             CBSuspendLoad.DataBindings.Add("Checked", _config, "SuspendLoad", true, DataSourceUpdateMode.OnPropertyChanged);
 #endif
@@ -97,7 +99,7 @@ namespace unlockfps_nc
         {
             if (DllAddDialog.ShowDialog() != DialogResult.OK)
                 return;
-            
+
             var selectedFiles = DllAddDialog.FileNames.ToList();
             selectedFiles = selectedFiles
                 .Where(x => VerifyDll(x) || MessageBox.Show(
@@ -144,7 +146,7 @@ namespace unlockfps_nc
             var selectedIndex = ListBoxDlls.SelectedIndex;
             if (selectedIndex == -1)
                 return;
-            
+
             _config.DllList.RemoveAt(selectedIndex);
             RefreshDllList();
         }

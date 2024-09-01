@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -115,6 +116,13 @@ namespace unlockfps_nc.Service
             Native.GetWindowThreadProcessId(hWnd, out var pid);
             _gameInForeground = pid == _gamePid;
 
+            if (_config.Affinity != 0)
+            {
+                Process proc = Process.GetProcessById((int)pid);
+                long affinityMask = _config.Affinity;
+                proc.ProcessorAffinity = (IntPtr)affinityMask;
+            }
+
             if (!_config.UsePowerSave)
                 return;
 
@@ -138,6 +146,11 @@ namespace unlockfps_nc.Service
             STARTUPINFO si = new();
             uint creationFlag = _config.SuspendLoad ? 4u : 0u;
             var gameFolder = Path.GetDirectoryName(_config.GamePath);
+
+            if (_config.UseHDR)
+            {
+                Registry.SetValue("HKEY_CURRENT_USER\\Software\\miHoYo\\Genshin Impact", "WINDOWS_HDR_ON_h3132281285", 1);
+            }
 
             if (!Native.CreateProcess(_config.GamePath, BuildCommandLine(), IntPtr.Zero, IntPtr.Zero, false, creationFlag, IntPtr.Zero, gameFolder, ref si, out var pi))
             {
